@@ -1,0 +1,589 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
+
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+	<meta name="description" content=""/>
+	<meta name="keywords" content="" />
+	<meta name="author" content="morgane" />
+	<title>Practical: ChIP-Seq Data Analysis</title>
+	<link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+<style type="text/css">
+
+#wrapper{
+  margin:0 auto;
+  #padding:15px 15% 8em;
+  text-align:left
+}
+#content {
+  max-width:70em;
+  width:100%;
+  margin:0 auto;
+  padding-bottom:20px;
+  overflow:hidden
+}
+.demo {
+  margin:1.5em 0;
+  padding:1.5em 1.5em 0.75em;
+  border:1px solid #ccc;
+  position:relative;
+  overflow:hidden
+}
+
+.post {
+  position:relative;
+  overflow:hidden
+}
+.collapse p {padding:0 10px 1em}
+
+.switch {position:absolute; top:1.5em; right: 1.5em; padding:3px}
+
+#.post .switch {position:static; text-align:right}
+
+.post .main{margin-bottom:0; padding-bottom:0}
+
+.other li, .summary {margin-bottom:.3em; padding:1em; border:1px solid #e8e7e8; background-color:#f8f7f8}
+
+.other ul {list-style-type:none; text-align:center}
+
+
+.expand{padding-bottom:.75em}
+
+/* --- Links  --- */
+
+#download {
+  border-style:none;
+  background:white;
+}
+
+.expand a {
+  display:block;
+  padding:3px 10px
+}
+.expand a:link, .expand a:visited {
+  border-width:1px;
+  background-image:url(img/arrow-down.gif);
+  background-repeat:no-repeat;
+  background-position:98% 50%;
+}
+.expand a:hover, .expand a:active, .expand a:focus {
+}
+.expand a.open:link, .expand a.open:visited {
+  #border-style:solid;
+  #background:#eee url(img/arrow-up.gif) no-repeat 98% 50%
+  color:black;
+}
+</style>
+<!--[if lte IE 6]>
+<style type="text/css">
+h3 a, .demo {position:relative; height:1%}
+</style>
+<![endif]-->
+
+<!--[if lte IE 6]>
+<script type="text/javascript">
+   try { document.execCommand( "BackgroundImageCache", false, true); } catch(e) {};
+</script>
+<![endif]-->
+<!--[if !lt IE 6]><!-->
+<script type="text/javascript" src="scripts/jquery.js"></script>
+<script type="text/javascript" src="scripts/expand.js"></script>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+$(function() {
+    $("#content h3.expand").toggler();
+    $("#content h2.expand").toggler();
+    $("#content div.demo").expandAll({trigger: "h3.expand", ref: "h3.expand"});
+    $("#content div.other").expandAll({
+      expTxt : "[Show]", 
+      cllpsTxt : "[Hide]",
+      ref : "ul.collapse",
+      showMethod : "show",
+      hideMethod : "hide"
+    });
+    $("#content div.post").expandAll({
+      expTxt : "[Show tip]", 
+      cllpsTxt : "[Hide tip]",
+      ref : "div.collapse", 
+      localLinks: "p.top a"    
+    });    
+});
+//--><!]]>
+</script>
+<!--<![endif]-->
+</head>
+
+<body>
+
+<div id="site-wrapper">
+
+	<div id="header">
+
+		<div id="top">
+
+			<div class="left" id="logo">
+								
+<a href="#"><h2 class="label label-green">Practical: ChIP-Seq Data Analysis</h2></a>
+			</div>
+
+			<div class="clearer">&nbsp;</div>
+
+		</div>
+
+		<div class="navigation" id="sub-nav">
+
+			<ul class="tabbed">
+	<li class="current-tab"><a href="#contents">Introduction</a></li>
+				<li><a href="#download">Download dataset</a></li>
+				<li><a href="#quality">Quality & Stats</a></li>
+				<li><a href="#mapping">Mapping</a></li>
+				<li><a href="#peak">Peak-calling</a></li>
+				<li><a href="#motifs">Motif analysis</a></li>
+				<li><a href="http://morgane.bardiaux.fr" target='_blank' class="label label-blue right"> Morgane Thomas-Chollier</a></li>
+			</ul>
+
+			<div class="clearer">&nbsp;</div>
+
+			<div class="clearer">&nbsp;</div>
+
+		</div>
+
+	</div>
+
+	<div class="main" id="main-two-columns">
+
+		<div class="left" id="main-content">
+
+			<h2 id="contents"> Introduction </h2>
+			<b>Goal</b><br/>
+
+<u>The aim is to :</u>
+<ul>
+<li>have an understanding of the nature of ChIP-Seq data</li>
+<li>obtain a public dataset from online databases</li>
+<li>perform an analysis workflow including Quality Check, read mapping, peak-calling</li>
+<li>perform a motif analysis with online web programs (RSAT suite)</li>
+</ul>
+
+<u> In practice</u><br/>
+The goal of this tutorial is to perform the successive steps to obtain a list of peaks. <br/>
+We will first see how to retrieve the raw reads, get basic information on this dataset, then perform the mapping of the reads on the reference genome to obtain the coordinates of the reads, and finally perform the peak-calling step, to look for clusters of reads forming peaks. As downstream analysis, we will perform motif discovery in the peak dataset.
+<br/><img src="tutorial_overview.png" height="200"/><br/>
+This training does not cover all methods available today. It does not aim at bringing users to a professional NGS analyst level but provides enough information to allow biologists understand what DNA sequencing practically is and to communicate with NGS experts for more in-depth needs.
+
+
+
+</p>
+<b>Galaxy platform</b><br/>
+We will use a publicly accessible server that provides tools for Next Generation Sequencing (NGS) analyses: the <a href="http://main.g2.bx.psu.edu/" target="_blank">Galaxy server</a>.
+This is the main server, please note that there are many other public (and private !) Galaxy servers around the world.
+</p>
+
+<b>Dataset description</b><br/>
+<p>
+For this exercice, we will use a dataset produced by Chen et al (see on the right of the page for details on the publication) for a study of transcription factors involved in the differenciation of stem cells. For time reasons, we will focus on one factor: <b>Oct4</b>. The ChIP-seq experiment was conducted on mouse cells, on an Illumina Genome Analyzer sequencer. These two information are necessary before starting analyzing these data.
+</p>
+
+
+	<div id="wrapper"> 
+      <div id="content"> 
+      
+      <!-- DOWNLOAD -->	 
+          <div class="demo">
+            <h2 id="download" class="expand">Downloading ChIP-seq reads from GEO into Galaxy</h2>
+            <div class="collapse">
+            <div class="notice">
+			<b>Goal:</b> Identify the dataset corresponding to the studied article and retrieve the data (reads as FASTQ file) corresponding to one experiment and the control. 
+			<br/>
+			</div>
+            <h3 class="expand">1 - Obtaining an identifier for a chosen dataset</h3>
+            <div class="collapse">
+                <p>Within an article of interest, you can find the identifier of the dataset, which is usually stored in the NCBI’s Gene Expression Omnibus (GEO)
+                or EBI's ArrayExpress (note that the two databases exchange data, so in fine, they have the same content).
+                
+                 <div class="post">
+               <div class="success">Open the PDF (see link on the right). Search for a sentence mentioning the deposition of the data in a database. <br/>
+                (tip: automatically search in the pdf "GEO")<br/>
+                What is the accession number ?</br>
+                </div>
+            	<div class="collapse"> 
+                <p>The GEO identifier is <b>GSE11431</b></p>
+            	</div>
+          </div>
+            </div>
+            
+            <h3 class="expand">2 - Accessing GSE11431 from GEO </h3>
+            <div class="collapse">
+                <ol>
+                <li>Search in google <b>GSE11431</b>. Click on the first link to directly access the correct page on the GEO database.</li>
+                
+                <br/>
+                <li>This GEO entry contains multiple chip-seq datasets for different factors (total of 16 samples). At the bottom of the page, click on the subseries related to the <b>Oct4</b> dataset. (this subseries has its own identifier:<b>GSM288346</b>)</li>
+                <br/>
+                <li>In the new page, go to the bottom to find the <b>SRA identifier</b>. This is the identifier of the raw dataset stored in the SRA database.</li>
+ 				<li>Copy the identifier <b>SRX000546</b> (do not click on the link)</li>
+                <br/>
+                </ol>
+            </div>
+            <h3 class="expand">3 - Downloading FASTQ file from the EBI database</h3>
+            <div class="collapse">
+            Although direct access to the SRA database at the NCBI is doable, in practice it's simpler and quicker to download datasets from the EBI (European Bioinformatics Institute)  website, located in Europe. The EBI hosts the ENA database (European Nucleotide Archive), which encompasses the data from SRA.
+                <ol><li>Go to <a href ="http://www.ebi.ac.uk" target='_blank'>the EBI website</a>. Paste your identifier (SRX000546) and click on the button "search"</li>
+                <li>Click on the first result. On the next page, there is a table with 4 rows, indicating that this experiment was done with four technical replicates. We will use the first replicate (<b>SRR002012</b>) On the right, there is a link to the FASTQ file. Do not download the file in the context on this course, as these are large files. For efficiency, this file has already been downloaded for you in the Galaxy platform for the rest of the course.</a></li>
+                <li> To find the FASTQ file for the control dataset, redo the same steps starting from the GEO web page  (see step 2.2) and choose <b>ES_GFP</b>. Similarly, do not download the FASTQ file, it has already been done to gain time. We will focus on the replicate <b>SRR001996</b></li>
+                </ol>
+            </div>
+            <h3 class="expand">4 - Import the FASTQ file into Galaxy </h3>
+            <div class="collapse">
+                <li>Go to <a href="https://usegalaxy.org/u/morgane/h/oct4-and-input-fastq" target='_blank'>https://usegalaxy.org/u/morgane/h/oct4-and-input-fastq</a></li>
+                <li>Click on the link "import history" (top right) to import the FASTQ files in your "history"</li>
+                <li> The following steps have already been done for you, this is for information only and explains how the FASTQ files were transfered into Galaxy) </li>
+                <li> Click on the left menu on "Get data > Upload data". In the pop-up page, click at the bottom on the button "Paste/Fetch data", copy the URL of the FASTQ file (found on the EBI website), and click on the button "start". Choose the genome assembly <b>mm9</b>.
+                </ol>
+            </div>
+            
+            <div class="error">At this point, you should know how to find a published dataset and download the raw FASTQ files, one for the experiment, one for the control. In which organism are you working ? </div>
+          </div>
+          </div>
+          
+          
+          
+     <!-- QUALITY-->	     
+          
+          
+          <div class="demo">
+            <h2 id="quality" class="expand" >Quality control of the reads and statistics</h2>
+            <div class="collapse">
+            <div class="notice">
+			<b>Goal:</b> Get some basic information on the data (read length, number of reads, global quality of dataset)
+			<br/>
+			</div>
+            <h3 class="expand">1 - Getting the FASTQC report</h3>
+            <div class="collapse">
+                <ol>
+                <li>In the right menu in Galaxy, click on "NGS: QC and manipulation" then "FastQC Read Quality reports". Click on execute to run FASTQC on the first (Oct4) dataset. Once the History appears with 2 new blocks (grey or yellow), launch the same analysis on the control dataset. Once it's green, calculation is finished, click on the result name and the little eye to see the result itself.</li>
+                
+                <div class="post">
+               <div class="success">Analyze the result of the FASTQC program: <br/>
+                How many reads are present in the file ?<br/>
+                What is the read length ?</br>
+                Is the overall quality good ? <br/>
+                Are there any concerns raised by the report ? If so, can you tell where the problem might come from ? <br/>
+                </div>
+            	<div class="collapse"> 
+                <p>There are 5 672 003reads of 26bp. The overall quality is average, and drops at the last position, which is usual with Illumina sequencing, so this feature is not raising hard concerns. There are several "red lights" in the report, but this is mainly due to the fact that this dataset is not so recent (2008). </p>
+            	</div>
+          </div>
+				<li>Now do the same with the control (Input) dataset (SRR000996.fastq).</li>
+				<div class="post">
+               <div class="success"> Analyze the result of the FASTQC program<br/><br/>
+                </div>
+            	<div class="collapse"> 
+                <p>There are 5 898 008 reads of 26bp. The overall quality is good, although it drops at the last position, which is usual with Illumina sequencing, so this feature is not raising hard concerns. </p>
+            	</div>
+          </div>
+                </ol>
+            </div>
+            <div class="error">At this point, you should be confident about the quality of the datasets, and wether it's worth following with analyzing the datasets.
+                </div>
+          </div>
+          </div>
+        
+        <!-- MAPPING -->	
+
+          <div class="demo">
+            <h2 id="mapping" class="expand">Mapping the reads with Bowtie</h2>
+            <div class="collapse">
+            <div class="notice">
+			<b>Goal:</b> Obtain the coordinates of each read on the reference genome. 
+			<br/>
+			</div>
+            <h3 class="expand">1 - Choosing a mapping program</h3>
+            <div class="collapse">
+                <p>There are multiple programs to perform the mapping step. For reads produced by an Illumina machine for ChIP-seq, the currently "standard" programs are BWA and Bowtie (versions 1 and 2). We will use <b>Bowtie version 1.0.0</b> for this exercice.</p>
+            </div>
+            
+            
+            <h3 class="expand">2 - Mapping the experiment </h3>
+            <div class="collapse">
+            <ol>
+            <li>In the left menu click on "NGS: Mapping" then 'Map with Bowtie for Illumina"</li>
+            <li>Let's see the parameters of bowtie:</li>
+                <ul>
+                  <li>For the reference genome, keep <i>Use a built-in index</i> and select the mouse assembly <b>mm9</b></li>
+  					<li>Keep <i>single-end</i> for the library</li>
+  <li>The FASTQ file should be your read file (which is in FASTQ format)</li>
+  <li>In the <i> Bowtie settings</i>, choose <b>Full parameter list</b>. As you can see, this program has many parameters !!!. We will only change few ones:</li>
+<li>Change the <b>Maximum permitted total of quality values at mismatched read positions (-e): </b> to <b>40</b>.</li>
+<li>Change the <b>Number of mismatches for SOAP-like alignment policy (-v): </b> to <b>2</b>, which will allow two mismatches anywhere in the read, when aligning the read to the genome sequence.</li>
+<li>Change the <b>Suppress all alignments for a read if more than n reportable alignments exist (-m): </b> to <b>1</b>, which will exclude the reads that do not map uniquely to the genome.</li>
+<li>This is the longest step of this protocol, so we won't execute this step. Import the history from : <a href="https://usegalaxy.org/u/morgane/h/fastqc-and-mapping" target='_blank'> https://usegalaxy.org/u/morgane/h/fastqc-and-mapping</a></li>
+</ul>
+</ol>
+</div>
+
+ <h3 class="expand">3 - Filtering the uniquely mapped reads</h3>
+            <div class="collapse">
+<ol>
+<li>The output is SAM format, which contains all reads (mapped and not mapped), along with flags indicating whether there are mapped or not, their quality values and their genomic coordinates (only for the mapped ones).</li>
+<li>For the following steps, we are only interested in the mapped reads. We are going to filter out these reads: click on <b>NGS: SAM Tools</b>, and then <b>Filter SAM</b></li>
+<li>Click on <b>add a new flag</b> button, then in the <i>Type</i> menu, select <b>read is unmapped</b>, and then select <b>No</b>. Indeed, we do not want the unmapped reads (= we want the mapped ones).</li>
+<li>Click on the <b>execute</b> button.</li>
+                <div class="post">
+               <div class="success"> How many lines are there in this final file ? This represent the number of uniquely mapped reads.<br/>
+                </div>
+            	<div class="collapse"> 
+            	
+            	~2,100,000 lines for Oct4 and ~1,700,000 lines for the Input.
+                            	</div>
+   </div>
+            </div>
+                   
+            </ol>
+            
+            <h3 class="expand">4 - Mapping the control and filtering </h3>
+            <div class="collapse">
+            <ol>
+			<li>It is already in your history, but outside of this course context, the control dataset should be mapped as above.</li>
+			</ol>
+            </div>
+            <div class="error">At this point, you should have two filtered SAM files, one for the experiment, one for the control. </div>
+          </div>
+          </div>
+        
+
+	    	
+
+		 <!-- PEAK-CALLING -->
+		 
+		           <div class="demo">
+            <h2 id="peak" class="expand">Peak calling with MACS</h2>
+             <div class="collapse">
+            <div class="notice">
+			<b>Goal:</b> Define the peaks, i.e. the region with a high density of reads, where the studied factor was bound
+			<br/>
+			</div>
+            <h3 class="expand">1 - Choosing a peak-calling program</h3>
+            <div class="collapse">
+           <p>There are multiple programs to perform the peak-calling step. Some are more directed towards histone marks (broad peaks) while others are specific to narrow peaks (transcription factors). Here we will use <b>MACS version 1</b> because it's known to produce generally good results, and it is well-maintained by the developper. A new version (MACS2) is being developped, but still in testing phase so we will not use it today.</p>
+
+            </div>
+            <h3 class="expand">2 - Calling the peaks </h3>
+            <div class="collapse">
+                <ol>
+                 <li>In the section <b>NGS Toolbox Beta</b>. Click on <b>NGS: Peak Calling</b>, and then <b>MACS</b></li>
+  <p/>
+
+  <li><p>Enter an <b>Experiment Name</b> (e.g. <i>OCT4 Chen-2008</i>).</li>
+      
+  <li><p>For the <b>ChIP-seq tag file</b>, select the <b><u>filtered</u> SAM file for Oct4</b> you
+      created in the previous step.</li>
+
+<li> Click on "ChIP-Seq Control File" and select the <b><u>filtered</u> SAM file for Input</b> you
+      created in the previous step.</li>
+
+  <li><p><b>Effective genome size</b>: this is the size of the genome
+      considered "usable" for peak calling. This value is given by the
+      MACS developpers on their website. It is smaller than the
+      complete genome because many regions are excluded (telomeres,
+      highly repeated regions...). The default value is for human
+      (2700000000), as we work on mouse,
+      enter <b>1870000000</b> </li>
+  <li><p>Set the <b>Tag size</b> to 26bp (the default is 25).</li>
+  
+  <li><p>Leave all other options to their default values and
+      click <b>Execute</b>.</li>
+  
+  <li><p>While the program is running, two yellow boxes should appear
+      in the "History" frame at the right of the Galaxy
+      Window. After completion of the job, the boxes will be colored
+      in green. The first box contains an HTML page with links to
+      the results in various formats. The second box contain a BED
+      file with the coordinates of the peaks. </p></li>
+      </ol>
+       
+                </ol>
+            </div>
+            <h3 class="expand">3 - Analyzing the MACS results </h3>
+            <div class="collapse">
+            
+            
+            <div class="post">
+               <div class="success"> Look at the files that were created by MACS. How many peaks
+      ("regions") were detected by MACS ?<br/>
+                </div>
+            	<div class="collapse"> 
+                Check the number of lines in the Bed file : 2,522 regions. In the HTML result, also check the file 'OCT4_Chen-2008_model.pdf' to see the value <b>d</b> calculated by MACS.
+            	</div>
+   				</div>
+   				
+   				
+   				</div>
+            
+            <div class="error">At this point, you should have a BED file containing the peak coordinates. If necessary, copy this complete history : https://usegalaxy.org/u/morgane/h/completeworkflow
+                </div>
+          </div>
+          </div>
+			
+		    
+          
+          
+          	<!-- Motif-->	
+          	<div class="demo">
+            <h2 id="motifs" class="expand">Motif analysis</h2>
+            <div class="collapse">
+            <div class="notice">
+			<b>Goal:</b> Define binding motif(s) for the ChIPed transcription factor and identify potential cofactors		
+			</div>
+            <h3 class="expand">1 - Retrieve the peak sequences corresponding to the peak coordinate file (BED)</h3>
+            <div class="collapse">
+           <p> For the motif analysis, you first need to extract the sequences corresponding the the peaks. There are several ways to do this. We will use <a href="http://rsat.eu" target='blank'>RSAT</a> fetch-sequences.
+           <ol>
+           <li> Go to <a href="http://prokaryotes.rsat.eu/" target='blank'>RSAT server (located in Cuernavaca at CCG)</a> and in the left menu, click on "NGS ChIP-seq" and "fetch sequences from UCSC"</li>
+           <li> Choose <b>mm9</b> genome assembly</li>
+           <li>Download the peak (bed) file on your laptop (in Galaxy, click on the little floppy disk icon). If you have issues, download the file from <a href="oct4_vs_input.bed" target='blank'>here</a></li>
+           <li> Upload in the RSAT page by clicking on the button under "Upload a file from your computer", and choose the peak file from your computer. </li>
+           <li> Click on the button "Go" and wait for the result page. Then click on the button "Peak-motif"</li>
+           </ol>
+			
+            </div>
+            <h3 class="expand">2 - Motif discovery with RSAT </h3>
+            <div class="collapse">
+                <ol>
+             <li>The default peak-motifs web form only displays the essential options. There are only two
+mandatory parameters that are already filled thanks to the automatic transfer of the sequences<br/>
+a. The title box <br/>
+b. The sequences</li>
+                
+   				
+                <li>We could launch the analysis like this, but we will now modify some of the advanced options in order to fine-tune the analysis according
+to your data set.	
+	<ul><li> Open the "Reduce peak sequences" title, and make sure the "Cut peak sequences: +/- " option is set to <b>0</b> (we wish to analyse our full dataset)</li>
+	<li>Open the “Motif Discovery parameters” title, and check the oligomer sizes 6 and 7 (but not 8). Check "Discover over-represented spaced word pairs [dyad-analysis]"</li>
+	</ul>
+</li>
+                <li>You can indicate your email address in order to receive notification of the task submission and completion. This is particularly useful because the full analysis may take some time for very large datasets.</li>
+                
+                
+   				<li>Click “GO”. As soon as the query has been launched, you should receive an email indicating confirming the task submission, and providing a link to the future result page.</li>
+            
+   				
+   				<li>The Web page also displays a link, You can already click on this link. The report will be progressively updated during the processing of the workflow. The already calculated results are <a href="http://embnet.ccg.unam.mx/rsa-tools/tmp/apache/2015/03/12/peak-motifs.2015-03-12.094730_2015-03-12.094730_9HyFjw/peak-motifs_synthesis.html" target='_blank'> here </a></b></li>
+       
+   				<div class="post">
+   				<div class="success"> Look at the top of the report (Sequence composition panel). This is a summary and composition in nucleotides and di-nucleotides of your peak dataset. Among the motif found, do you find Oct4 (also known as Pou5f1) ?<br/>
+                </div>
+            	<div class="collapse"> 
+     The found motifs are all compared to know collection of motifs (Jaspar vertebrates for this analysis). There are indeed several motifs related to Pou5f1, and POU2F2 (synonyme Oct2) that is very similar. We also find the dimer Pou5f1::Sox2. More info <a href="http://nar.oxfordjournals.org/content/40/4/e31.long" target='_blank'> here, check figure 4</a>.
+                 </div>
+   				</div>
+                
+                </ol>
+            </div>
+
+        
+            <div class="error">At this point, you should know if your motif analysis has output a motif for your ChIped TF, and if you have potential cofactors to suggest.
+                </div>
+          </div>
+          </div>
+	
+
+	    
+	        </div>
+
+	    	    </div>	
+	    	    	</div>    	    	
+	
+<!-- SIDE BAR -->		
+
+		<div class="right sidebar" id="sidebar">
+		
+			<h5>Dataset</h5>
+			<ul>
+			<li>Chen et al <i>Integration of External Signaling Pathways with the Core Transcriptional Network in Embryonic Stem Cells.</i> Cell (133):1106–1117. 2008 <a href="http://www.ncbi.nlm.nih.gov/pubmed/18555785" target='_blank'>[Pubmed]</a>
+			<a href="article/2008_Chen_Cell.pdf" target="_blank">[PDF]</a>
+				</li>	
+			<u>all experiments:</u><a href="http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE11431" target='_blank'>GEO GSE11431</a><br/>
+			<u>experiment:</u><a href="http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM288346" target='_blank'>Oct4</a> SRX000546 -  SRR002012 <br/>
+			<u>control:</u><a href="http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM288358" target='_blank'> INPUT (GFP)</a> SRX000543 - SRR001996 
+
+			</ul>
+			<h5>databases:</h5>
+			<ul>
+			databases located in USA (host: NCBI)
+			<li><a href ="http://www.ncbi.nlm.nih.gov/geo/" target='_blank'>Gene Expression Omnibus (GEO)</a></li>
+			<li><a href="http://www.ncbi.nlm.nih.gov/sra" target="_blank">Sequence Read Archive (SRA)</a></li>
+			databases located in Europe (host: EBI)
+			<li><a href="https://www.ebi.ac.uk/arrayexpress/" target="_blank"> ArrayExpress</a></li>
+			<li><a href ="http://www.ebi.ac.uk/ena/" target='_blank'>European Nucleotide Archive (ENA)</a></li>
+			</ul>
+			
+			<h5>Formats:</h5>
+			<ul>
+			<li>
+				<a href="http://maq.sourceforge.net/fastq.shtml" target="_blank">FASTQ</a> : raw sequences + quality</li>
+			<li>
+				<a href="http://bioinformatics.oxfordjournals.org/content/25/16/2078.full.pdf" target="_blank">SAM</a> : aligned reads</li>
+			<li>
+				<a href="http://bioinformatics.oxfordjournals.org/content/25/16/2078.full.pdf" target="_blank">BAM</a> : "zipped" sam</li>
+			<li>
+				<a href="http://genome.ucsc.edu/FAQ/FAQformat.html#format1" target="_blank">BED</a> : genomic coordinates</li>
+			<li>
+				<a href="http://genome.ucsc.edu/goldenPath/help/wiggle.html" target="_blank">WIG</a> : coverage / density of some signal along genome</li>
+			<li>
+			<a href="http://genome.ucsc.edu/goldenPath/help/bedgraph.html" target="_blank">BEDGRAPH</a> : coverage / density of some signal along genome</li>
+
+			</ul>
+			
+			
+			<p>
+			</p><h5>Tools:</h5>
+			<ul>
+			<li><a href="http://main.g2.bx.psu.edu/" target="_blank">Galaxy main server</a></li>
+			<li><a href="http://bowtie-bio.sourceforge.net/manual.shtml" target="_blank">Bowtie manual</a></li>
+			<li><a href="https://github.com/taoliu/MACS/blob/macs_v1/README.rst" target="_blank">MACS manual</a></li>
+			<li><a href="http://rsat.eu" target="_blank">RSAT</a></li>
+			</ul>
+			<p>
+			</p>			<h5>Suggested Reading:</h5>
+			<ul>
+			<li>Bailey et al. <i>Practical Guidelines for the Comprehensive Analysis of ChIP-seq Data.</i> PLoS Comput Biol 9, e1003326 (2013).<a href="http://www.ploscompbiol.org/article/info%3Adoi%2F10.1371%2Fjournal.pcbi.1003326" target='_blank'> [Paper] </a><br/></li>
+			<li>Thomas-Chollier, M., Herrmann, C., Defrance, M., Sand, O., Thieffry, D. and van Helden, J. (2011).<i> RSAT peak-motifs: motif analysis in full-size ChIP-seq datasets</i> Nucleic Acids Research doi:10.1093/nar/gkr1104, 9.<a href="http://nar.oxfordjournals.org/content/40/4/e31.long"> [Paper] </a></li> 
+			<li>Thomas-Chollier M, Darbo E, Herrmann C, Defrance M, Thieffry D, van Helden J. (2012). <i>A complete workflow for the analysis of full-size ChIP-seq (and similar) data sets using peak-motifs</i>. Nat Protoc 7(8): 1551-1568. <a href="http://www.nature.com/nprot/journal/v7/n8/full/nprot.2012.088.html"> [Paper]</a></li>
+			</ul>
+			<p>
+
+				
+
+		</div>
+
+		<div class="clearer">&nbsp;</div>
+
+	</div>
+
+	<div id="footer">
+
+		<div class="left" id="footer-left">
+			
+		
+			
+			<p>&copy; 2015 Morgane Thomas-Chollier. All rights Reserved</p>
+
+			<p class="quiet"><a href="http://templates.arcsin.se/">Website template</a> by <a href="http://arcsin.se/">Arcsin</a></p>
+			
+			<div class="clearer">&nbsp;</div>
+
+		</div>
+
+		<div class="right" id="footer-right">
+
+		</div>
+
+		<div class="clearer">&nbsp;</div>
+
+	</div>
+
+</div>
+
+</body>
+</html>
